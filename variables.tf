@@ -44,15 +44,25 @@ variable "enable_grafana" {
   default     = true
 }
 
+variable "grafana_admin_user" {
+  description = "Admin username for Grafana"
+  type        = string
+  default     = "admin"
+}
+
+variable "grafana_admin_password" {
+  description = "Admin password for Grafana"
+  type        = string
+  sensitive   = true
+}
+
 variable "dshield_userid" {
   description = "DShield user ID (required only if enable_dshield = true)"
   type        = string
-  default     = ""
 }
 
 variable "dshield_authkey" {
   description = "DShield auth key (required only if enable_dshield = true)"
   type        = string
-  default     = ""
   sensitive   = true
 }

@@ -1,2 +1,21 @@
+# Copy this file to terraform.tfvars and fill in real values.
+# terraform.tfvars is gitignored — never commit real secrets.
+
+# Path to your SSH public key (private key stays on your machine)
 public_key_path = "~/.ssh/your-key.pub"
-bucket_name     = "cloud-siem-logs-yourname-uniqueid"
+
+# Must be globally unique across all of AWS S3 — add random characters if taken
+bucket_name = "your-globally-unique-bucket-name"
+
+# --- REQUIRED — leaving these blank will crash isc-agent on boot ---
+# Free signup at https://isc.sans.edu (create an account, generate an API key)
+dshield_userid  = "your-dshield-userid"
+dshield_authkey = "your-dshield-authkey"
+
+# --- REQUIRED — leaving this blank makes Grafana silently default to admin/admin ---
+grafana_admin_user     = "admin"
+grafana_admin_password = "choose-a-real-password-do-not-leave-blank"
+
+# Optional — defaults shown, override if needed
+# enable_dshield = true
+# enable_grafana = true

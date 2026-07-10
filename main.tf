@@ -1,14 +1,14 @@
 terraform {
-    required_providers {
-        aws = {
-            source = "hashicorp/aws"
-            version = "~> 5.0"
-        }
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
     }
+  }
 }
 
 provider "aws" {
-    region = var.aws_region
+  region = var.aws_region
 }
 
 data "aws_ami" "ubuntu" {
@@ -16,25 +16,34 @@ data "aws_ami" "ubuntu" {
   owners      = ["099720109477"]
 
   filter {
-    name   = "name" 
+    name   = "name"
     values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
   }
 }
 
 resource "aws_instance" "cloud_siem" {
-    ami                    = data.aws_ami.ubuntu.id
-    instance_type          = var.instance_type
-    iam_instance_profile   = aws_iam_instance_profile.cloud_siem_profile.name
-    key_name               = aws_key_pair.cloud_siem_key.key_name
-    vpc_security_group_ids = [aws_security_group.cloud_siem_sg.id]
-    tags = {
-        Name = "cloud_siem"
-    }
+  ami                    = data.aws_ami.ubuntu.id
+  instance_type          = var.instance_type
+  iam_instance_profile   = aws_iam_instance_profile.cloud_siem_profile.name
+  key_name               = aws_key_pair.cloud_siem_key.key_name
+  vpc_security_group_ids = [aws_security_group.cloud_siem_sg.id]
+  user_data = templatefile("${path.module}/user_data.sh.tftpl", {
+    enable_dshield         = var.enable_dshield
+    dshield_userid         = var.dshield_userid
+    dshield_authkey        = var.dshield_authkey
+    grafana_admin_user     = var.grafana_admin_user
+    grafana_admin_password = var.grafana_admin_password
+    enable_grafana         = var.enable_grafana
+  })
+
+  tags = {
+    Name = "cloud_siem"
+  }
 }
 
-resource  "aws_key_pair" "cloud_siem_key" {
-    key_name   = "cloud-siem-key"
-    public_key = file(var.public_key_path)
+resource "aws_key_pair" "cloud_siem_key" {
+  key_name   = "cloud-siem-key"
+  public_key = file(var.public_key_path)
 }
 
 resource "aws_s3_bucket" "cloud_siem_logs" {
@@ -42,8 +51,8 @@ resource "aws_s3_bucket" "cloud_siem_logs" {
   force_destroy = true
 
   tags = {
-        Name = "cloud-siem-logs"
-    }
+    Name = "cloud-siem-logs"
+  }
 }
 
 resource "aws_s3_bucket_public_access_block" "cloud_siem_logs_block" {
@@ -108,20 +117,20 @@ resource "aws_security_group_rule" "grafana" {
 }
 
 resource "aws_iam_role" "cloud_siem_ec2_role" {
-    name = "cloud-siem-ec2-role"
+  name = "cloud-siem-ec2-role"
 
-    assume_role_policy = jsonencode({
-        Version = "2012-10-17"
-        Statement = [
-            {
-                Action = "sts:AssumeRole"
-                Effect = "Allow"
-                Principal = {
-                    Service = "ec2.amazonaws.com"
-                }
-            }
-        ]
-    })
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
 }
 
 resource "aws_iam_role_policy" "cloud_siem_s3_policy" {
@@ -131,19 +140,19 @@ resource "aws_iam_role_policy" "cloud_siem_s3_policy" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
-        {
-          Effect = "Allow"
-          Action = [
-            "s3:PutObject",
-            "s3:GetObject"
-          ]
-          Resource = "${aws_s3_bucket.cloud_siem_logs.arn}/*"
-        }
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject"
+        ]
+        Resource = "${aws_s3_bucket.cloud_siem_logs.arn}/*"
+      }
     ]
   })
 }
 
 resource "aws_iam_instance_profile" "cloud_siem_profile" {
-  name = "cloud-siem-instance-profile" 
+  name = "cloud-siem-instance-profile"
   role = aws_iam_role.cloud_siem_ec2_role.name
 }

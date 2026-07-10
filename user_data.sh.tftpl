@@ -1,0 +1,51 @@
+#!/bin/bash
+
+set -e
+
+## Move the real SSH daemon off port 22 so Cowrie's container can bind there instead
+
+sed -i 's/^#Port 22/Port 12222/' /etc/ssh/sshd_config
+systemctl restart sshd
+
+## Add Docker's official repository (docker-compose-plugin doesn't exist in Ubuntu's default repos)
+
+apt-get update
+apt-get install -y ca-certificates curl gnupg git
+
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+chmod a+r /etc/apt/keyrings/docker.asc
+
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+  tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+apt-get update
+
+## install docker and the compose plugin — both now available from Docker's own repo
+
+apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+## clone cloud-siem repo to new EC2 instance
+
+cd /home/ubuntu
+git clone https://github.com/therossfisher/cloud-siem.git
+cd cloud-siem
+
+## write terraform .env variables
+
+cat > .env <<EOF
+ENABLE_DSHIELD=${enable_dshield}
+DSHIELD_USERID=${dshield_userid}
+DSHIELD_AUTHKEY=${dshield_authkey}
+GRAFANA_ADMIN_USER=${grafana_admin_user}
+GRAFANA_ADMIN_PASSWORD=${grafana_admin_password}
+EOF
+
+## bring up the stack - conditionally include Grafana based on terraform variable
+
+if [ "${enable_grafana}" = "true" ]; then
+  docker compose --profile grafana up -d
+else
+  docker compose up -d
+fi
