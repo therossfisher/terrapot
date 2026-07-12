@@ -8,6 +8,7 @@ services:
       - COWRIE_OUTPUT_DSHIELD_ENABLED=${ENABLE_DSHIELD}
       - COWRIE_OUTPUT_DSHIELD_USERID=${DSHIELD_USERID}
       - COWRIE_OUTPUT_DSHIELD_AUTH_KEY=${DSHIELD_AUTHKEY}
+      - COWRIE_OUTPUT_JSONLOG_ENABLED=true
     volumes: 
       - ./logs/cowrie:/cowrie/cowrie-git/var/log/cowrie
 
