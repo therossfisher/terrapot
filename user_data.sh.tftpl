@@ -73,7 +73,7 @@ chown ubuntu:ubuntu /home/ubuntu/cloud-siem/sync-logs.sh /home/ubuntu/cloud-siem
 
 ## Schedule the sync every 5 minutes via cron, logging output so failures aren't silent
 
-(crontab -u ubuntu -l 2>/dev/null; echo "*/5 * * * * /home/ubuntu/cloud-siem/sync-logs.sh >> /home/ubuntu/cloud-siem/sync.log 2>&1") | crontab -u ubuntu -
+(crontab -u ubuntu -l 2>/dev/null || true; echo "*/5 * * * * /home/ubuntu/cloud-siem/sync-logs.sh >> /home/ubuntu/cloud-siem/sync.log 2>&1") | crontab -u ubuntu -
 
 ## Run one sync immediately so logs start shipping right away, not after the first 5-minute wait
 sudo -u ubuntu /home/ubuntu/cloud-siem/sync-logs.sh >> /home/ubuntu/cloud-siem/sync.log 2>&1
