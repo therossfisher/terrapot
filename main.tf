@@ -21,6 +21,8 @@ data "aws_ami" "ubuntu" {
   }
 }
 
+data "aws_caller_identity" "current" {}
+
 resource "aws_instance" "cloud_siem" {
   ami                    = data.aws_ami.ubuntu.id
   instance_type          = var.instance_type
@@ -214,6 +216,47 @@ resource "aws_cloudwatch_event_rule" "canary_tripwire" {
   })
 }
 
+# --- CloudTrail: required for EventBridge to receive "AWS API Call via CloudTrail" events at all ---
+resource "aws_s3_bucket_policy" "cloud_siem_trail_bucket_policy" {
+  count  = var.enable_diy_canary ? 1 : 0
+  bucket = aws_s3_bucket.cloud_siem_logs.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "AWSCloudTrailAclCheck"
+        Effect    = "Allow"
+        Principal = { Service = "cloudtrail.amazonaws.com" }
+        Action    = "s3:GetBucketAcl"
+        Resource  = aws_s3_bucket.cloud_siem_logs.arn
+      },
+      {
+        Sid       = "AWSCloudTrailWrite"
+        Effect    = "Allow"
+        Principal = { Service = "cloudtrail.amazonaws.com" }
+        Action    = "s3:PutObject"
+        Resource  = "${aws_s3_bucket.cloud_siem_logs.arn}/cloudtrail-logs/AWSLogs/${data.aws_caller_identity.current.account_id}/*"
+        Condition = {
+          StringEquals = { "s3:x-amz-acl" = "bucket-owner-full-control" }
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_cloudtrail" "cloud_siem_trail" {
+  count                         = var.enable_diy_canary ? 1 : 0
+  name                          = "cloud-siem-canary-trail"
+  s3_bucket_name                = aws_s3_bucket.cloud_siem_logs.id
+  s3_key_prefix                 = "cloudtrail-logs"
+  include_global_service_events = true
+  is_multi_region_trail         = false
+  enable_logging                = true
+
+  depends_on = [aws_s3_bucket_policy.cloud_siem_trail_bucket_policy]
+}
+
 resource "aws_cloudwatch_event_target" "canary_to_sns" {
   count     = var.enable_diy_canary ? 1 : 0
   rule      = aws_cloudwatch_event_rule.canary_tripwire[0].name
@@ -236,4 +279,6 @@ resource "aws_sns_topic_policy" "canary_alerts_policy" {
       Resource  = aws_sns_topic.canary_alerts[0].arn
     }]
   })
+
 }
+

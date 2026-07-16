@@ -26,6 +26,16 @@ apt-get update
 
 apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
+## Disable Docker's userland proxy so containers see real client IPs instead of the
+## docker0 bridge gateway address — without this, Cowrie logs every connection's
+## src_ip as 172.19.0.1 regardless of who actually connected.
+cat > /etc/docker/daemon.json <<'DOCKEREOF'
+{
+  "userland-proxy": false
+}
+DOCKEREOF
+systemctl restart docker
+
 ## install AWS CLI v2
 apt-get install -y unzip
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
