@@ -29,5 +29,9 @@ RUN chmod +x /entrypoint.sh
 
 EXPOSE 8000
 
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/')" || exit 1
+
+# checkov:skip=CKV_DOCKER_3:Container starts as root only to bind rsyslogd's socket and write dshield.ini; entrypoint.sh drops to the unprivileged 'agent' user via gosu before launching isc-agent itself. Static USER instruction is not applicable to this start-root-then-drop pattern.
 ENTRYPOINT ["/entrypoint.sh"]
 
