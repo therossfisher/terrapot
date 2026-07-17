@@ -44,11 +44,11 @@ resource "aws_instance" "cloud_siem" {
 
   # checkov:skip=CKV_AWS_46:All values passed to user_data are variable references (var.*), not literal secrets; actual credentials are supplied at apply-time via terraform.tfvars, never committed
   user_data = templatefile("${path.module}/user_data.sh.tftpl", {
-    aws_region             = var.aws_region
-    enable_dshield         = var.enable_dshield
-    grafana_admin_user     = var.grafana_admin_user
-    enable_grafana         = var.enable_grafana
-    bucket_name            = var.bucket_name
+    aws_region         = var.aws_region
+    enable_dshield     = var.enable_dshield
+    grafana_admin_user = var.grafana_admin_user
+    enable_grafana     = var.enable_grafana
+    bucket_name        = var.bucket_name
 
     enable_thinkst_canary            = var.enable_thinkst_canary
     thinkst_canary_access_key_id     = var.thinkst_canary_access_key_id
