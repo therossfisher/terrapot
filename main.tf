@@ -42,7 +42,7 @@ resource "aws_instance" "cloud_siem" {
     encrypted = true # encrypts EBS root volume at rest using default AWS-managed KMS key
   }
 
-   # checkov:skip=CKV_AWS_46:All values passed to user_data are variable references (var.*), not literal secrets; actual credentials are supplied at apply-time via terraform.tfvars, never committed
+  # checkov:skip=CKV_AWS_46:All values passed to user_data are variable references (var.*), not literal secrets; actual credentials are supplied at apply-time via terraform.tfvars, never committed
   user_data = templatefile("${path.module}/user_data.sh.tftpl", {
     enable_dshield         = var.enable_dshield
     dshield_userid         = var.dshield_userid
@@ -72,11 +72,11 @@ resource "aws_key_pair" "cloud_siem_key" {
 }
 
 resource "aws_s3_bucket" "cloud_siem_logs" {
-# checkov:skip=CKV_AWS_144:Ephemeral bucket (force_destroy), torn down every session — no durable data to replicate
-# checkov:skip=CKV_AWS_21:Ephemeral bucket, short single-session lifecycle — versioning not meaningful here
-# checkov:skip=CKV_AWS_18:This bucket is itself the log destination; access logging would require a second bucket for marginal value
-# checkov:skip=CKV2_AWS_62:No event-driven automation consumes this bucket currently — future feature, not in scope
-# checkov:skip=CKV2_AWS_61:Ephemeral bucket, force_destroy every session — no long-term objects requiring lifecycle rules
+  # checkov:skip=CKV_AWS_144:Ephemeral bucket (force_destroy), torn down every session — no durable data to replicate
+  # checkov:skip=CKV_AWS_21:Ephemeral bucket, short single-session lifecycle — versioning not meaningful here
+  # checkov:skip=CKV_AWS_18:This bucket is itself the log destination; access logging would require a second bucket for marginal value
+  # checkov:skip=CKV2_AWS_62:No event-driven automation consumes this bucket currently — future feature, not in scope
+  # checkov:skip=CKV2_AWS_61:Ephemeral bucket, force_destroy every session — no long-term objects requiring lifecycle rules
   bucket        = var.bucket_name
   force_destroy = true
 
@@ -283,10 +283,10 @@ resource "aws_s3_bucket_policy" "cloud_siem_trail_bucket_policy" {
 }
 
 resource "aws_cloudtrail" "cloud_siem_trail" {
-# checkov:skip=CKV_AWS_67:Single-region trail is a deliberate cost decision made to keep spend low
-# checkov:skip=CKV_AWS_35:Customer-managed KMS key has ongoing cost not justified for this project's scope; default protections apply
-# checkov:skip=CKV_AWS_252:Redundant with existing canary EventBridge->SNS alerting; a second "log delivered" notification adds noise not signal
-# checkov:skip=CKV2_AWS_10:CloudWatch Logs ingestion adds ongoing cost; raw logs already queried directly from S3
+  # checkov:skip=CKV_AWS_67:Single-region trail is a deliberate cost decision made to keep spend low
+  # checkov:skip=CKV_AWS_35:Customer-managed KMS key has ongoing cost not justified for this project's scope; default protections apply
+  # checkov:skip=CKV_AWS_252:Redundant with existing canary EventBridge->SNS alerting; a second "log delivered" notification adds noise not signal
+  # checkov:skip=CKV2_AWS_10:CloudWatch Logs ingestion adds ongoing cost; raw logs already queried directly from S3
   count                         = var.enable_diy_canary ? 1 : 0
   name                          = "cloud-siem-canary-trail"
   s3_bucket_name                = aws_s3_bucket.cloud_siem_logs.id
