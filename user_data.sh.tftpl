@@ -132,6 +132,21 @@ chown ubuntu:ubuntu /home/ubuntu/cloud-siem/sync-logs.sh /home/ubuntu/cloud-siem
 ## Run one sync immediately so logs start shipping right away, not after the first 5-minute wait
 sudo -u ubuntu /home/ubuntu/cloud-siem/sync-logs.sh >> /home/ubuntu/cloud-siem/sync.log 2>&1
 
+# Create 1GB swap file to protect against OOM kills on t3.micro (1GB RAM)
+# || true on each step: a swap failure should degrade gracefully, not take down
+# the whole deployment (Cowrie/isc-agent/Grafana are the actual point of this box)
+fallocate -l 1G /swapfile || true
+chmod 600 /swapfile || true
+mkswap /swapfile || true
+swapon /swapfile || true
+echo '/swapfile none swap sw 0 0' >> /etc/fstab || true
+
+if swapon --show | grep -q /swapfile; then
+  echo "SWAP: confirmed active"
+else
+  echo "SWAP: WARNING - setup failed, continuing without swap protection"
+fi
+
 if [ "${enable_grafana}" = "true" ]; then
   docker compose --profile grafana up -d
 else
