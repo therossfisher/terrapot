@@ -37,6 +37,25 @@ services:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning
     profiles: ["grafana"]
+  loki:
+    image: grafana/loki:latest
+    restart: always
+    volumes:
+      - ./loki-config.yml:/etc/loki/local-config.yaml
+      - loki-data:/loki
+    profiles: ["grafana"]
+
+  promtail:
+    image: grafana/promtail:latest
+    restart: always
+    volumes:
+      - ./promtail-config.yml:/etc/promtail/config.yml
+      - ./logs/cowrie:/var/log/cowrie:ro
+      - ./logs/isc-agent:/var/log/isc-agent:ro
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    profiles: ["grafana"]
 
 volumes:
   grafana-data:

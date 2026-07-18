@@ -83,15 +83,6 @@ resource "aws_s3_bucket" "cloud_siem_logs" {
   }
 }
 
-resource "aws_s3_bucket_public_access_block" "cloud_siem_logs_block" {
-  bucket = aws_s3_bucket.cloud_siem_logs.id
-
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
-}
-
 resource "aws_s3_bucket_server_side_encryption_configuration" "cloud_siem_logs_encryption" {
   bucket = aws_s3_bucket.cloud_siem_logs.id
 
@@ -101,51 +92,65 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "cloud_siem_logs_e
     }
   }
 }
+resource "aws_s3_bucket_public_access_block" "cloud_siem_logs_block" {
+  bucket = aws_s3_bucket.cloud_siem_logs.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
 
 resource "aws_security_group" "cloud_siem_sg" {
   name        = "cloud-siem-sg"
   description = "Security group for cloud-siem honeypot and admin access"
 
-  # checkov:skip=CKV_AWS_24:Intentional honeypot bait — Cowrie must be reachable on port 22 to attract SSH attackers
-  ingress {
-    description = "Cowrie honeypot SSH bait"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  # Admin SSH is open to 0.0.0.0/0 intentionally — key-based auth only (no password login),
-  # kept open rather than IP-scoped to preserve one-command reproducibility for anyone cloning this repo
-  ingress {
-    description = "Real admin SSH"
-    from_port   = var.admin_ssh_port
-    to_port     = var.admin_ssh_port
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  # checkov:skip=CKV_AWS_260:Intentional honeypot bait — isc-agent must be reachable on port 80 to attract web scanners
-  ingress {
-    description = "Web honeypot"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  # checkov:skip=CKV_AWS_382:Instance requires unrestricted outbound for Docker image pulls, S3 log sync, and DShield/ISC reporting
-  egress {
-    description = "Allow all outbound"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
   tags = {
     Name = "cloud-siem-sg"
   }
+}
+
+# checkov:skip=CKV_AWS_24:Intentional honeypot bait — Cowrie must be reachable on port 22 to attract SSH attackers
+resource "aws_security_group_rule" "cowrie_ssh" {
+  type              = "ingress"
+  description       = "Cowrie honeypot SSH bait"
+  from_port         = 22
+  to_port           = 22
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
+  security_group_id = aws_security_group.cloud_siem_sg.id
+}
+
+resource "aws_security_group_rule" "admin_ssh" {
+  type              = "ingress"
+  description       = "Real admin SSH"
+  from_port         = var.admin_ssh_port
+  to_port           = var.admin_ssh_port
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
+  security_group_id = aws_security_group.cloud_siem_sg.id
+}
+
+# checkov:skip=CKV_AWS_260:Intentional honeypot bait — isc-agent must be reachable on port 80 to attract web scanners
+resource "aws_security_group_rule" "web_honeypot" {
+  type              = "ingress"
+  description       = "Web honeypot"
+  from_port         = 80
+  to_port           = 80
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
+  security_group_id = aws_security_group.cloud_siem_sg.id
+}
+
+# checkov:skip=CKV_AWS_382:Instance requires unrestricted outbound for Docker image pulls, S3 log sync, and DShield/ISC reporting
+resource "aws_security_group_rule" "allow_all_egress" {
+  type              = "egress"
+  description       = "Allow all outbound"
+  from_port         = 0
+  to_port           = 0
+  protocol          = "-1"
+  cidr_blocks       = ["0.0.0.0/0"]
+  security_group_id = aws_security_group.cloud_siem_sg.id
 }
 
 resource "aws_security_group_rule" "grafana" {
