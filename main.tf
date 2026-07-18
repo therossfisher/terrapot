@@ -50,6 +50,9 @@ resource "aws_instance" "cloud_siem" {
     enable_grafana     = var.enable_grafana
     bucket_name        = var.bucket_name
 
+    grafana_domain    = var.grafana_domain
+    letsencrypt_email = var.letsencrypt_email
+
     enable_thinkst_canary            = var.enable_thinkst_canary
     thinkst_canary_access_key_id     = var.thinkst_canary_access_key_id
     thinkst_canary_secret_access_key = var.thinkst_canary_secret_access_key
