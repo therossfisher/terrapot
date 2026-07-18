@@ -147,6 +147,46 @@ else
   echo "SWAP: WARNING - setup failed, continuing without swap protection"
 fi
 
+## Request Let's Encrypt certificate for Grafana via DNS-01 (Route53) challenge —
+## only runs if grafana_domain was set; otherwise Grafana stays on plain HTTP:3000
+if [ -n "${grafana_domain}" ]; then
+  apt-get install -y certbot python3-certbot-dns-route53
+
+  certbot certonly \
+    --dns-route53 \
+    --non-interactive \
+    --agree-tos \
+    -m "${letsencrypt_email}" \
+    -d "${grafana_domain}"
+
+  if [ -f "/etc/letsencrypt/live/${grafana_domain}/fullchain.pem" ]; then
+    echo "CERTBOT: certificate confirmed at /etc/letsencrypt/live/${grafana_domain}/"
+    ## Write the nginx reverse-proxy config with the real domain baked in —
+    ## this file can't be committed as static content since it needs the
+    ## domain substituted at boot time, not at repo-write time
+    cat > /home/ubuntu/cloud-siem/nginx-grafana.conf <<PROXYEOF
+server {
+    listen 443 ssl;
+    server_name ${grafana_domain};
+
+    ssl_certificate     /etc/letsencrypt/live/${grafana_domain}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${grafana_domain}/privkey.pem;
+
+    location / {
+        proxy_pass http://grafana:3000;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+}
+PROXYEOF
+
+  else
+    echo "CERTBOT: WARNING - certificate not found after run, Grafana will stay HTTP-only"
+  fi
+fi
+
 if [ "${enable_grafana}" = "true" ]; then
   docker compose --profile grafana up -d
 else

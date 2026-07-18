@@ -165,6 +165,18 @@ resource "aws_security_group_rule" "grafana" {
   security_group_id = aws_security_group.cloud_siem_sg.id
 }
 
+resource "aws_security_group_rule" "grafana_https" {
+  count = var.grafana_domain != "" ? 1 : 0
+
+  description       = "Grafana HTTPS via reverse proxy"
+  type              = "ingress"
+  from_port         = 443
+  to_port           = 443
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
+  security_group_id = aws_security_group.cloud_siem_sg.id
+}
+
 resource "aws_iam_role" "cloud_siem_ec2_role" {
   name = "cloud-siem-ec2-role"
 
@@ -368,6 +380,31 @@ resource "aws_iam_role_policy" "cloud_siem_ssm_policy" {
         Effect   = "Allow"
         Action   = ["kms:Decrypt"]
         Resource = "arn:aws:kms:${var.aws_region}:${data.aws_caller_identity.current.account_id}:alias/aws/ssm"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "cloud_siem_route53_policy" {
+  count = var.grafana_domain != "" ? 1 : 0
+
+  name = "cloud-siem-route53-dns01"
+  role = aws_iam_role.cloud_siem_ec2_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "AllowChangeRecordSetsOnHostedZone"
+        Effect   = "Allow"
+        Action   = "route53:ChangeResourceRecordSets"
+        Resource = "arn:aws:route53:::hostedzone/${var.route53_hosted_zone_id}"
+      },
+      {
+        Sid      = "AllowGetChangeStatus"
+        Effect   = "Allow"
+        Action   = "route53:GetChange"
+        Resource = "*"
       }
     ]
   })

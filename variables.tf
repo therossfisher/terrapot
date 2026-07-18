@@ -44,6 +44,24 @@ variable "enable_grafana" {
   default     = true
 }
 
+variable "grafana_domain" {
+  description = "Optional domain/subdomain for Grafana HTTPS access (e.g. grafana.yourdomain.com). Leave empty to skip HTTPS and access Grafana via http://<instance-ip>:3000 only."
+  type        = string
+  default     = ""
+}
+
+variable "route53_hosted_zone_id" {
+  description = "Route53 hosted zone ID for grafana_domain's parent domain (required only if grafana_domain is set)"
+  type        = string
+  default     = ""
+}
+
+variable "letsencrypt_email" {
+  description = "Contact email for Let's Encrypt certificate expiry notices (required only if grafana_domain is set)"
+  type        = string
+  default     = ""
+}
+
 variable "grafana_admin_user" {
   description = "Admin username for Grafana"
   type        = string
