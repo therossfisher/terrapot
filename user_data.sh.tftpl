@@ -48,6 +48,10 @@ rm -rf awscliv2.zip aws/
 cd /home/ubuntu
 git clone https://github.com/therossfisher/cloud-siem.git
 cd cloud-siem
+## Bake the exclude_ip value into the dashboard's default, if one was provided —
+## replaces the placeholder committed in the repo so the dashboard works with
+## zero manual setup for anyone who doesn't set this variable (stays empty/no-op)
+sed -i "s/__EXCLUDE_IP_PLACEHOLDER__/${exclude_ip}/g" /home/ubuntu/cloud-siem/grafana/provisioning/dashboards/json/cowrie-overview.json
 
 ## Builds decoy AWS credentials file based on which canaries are enabled.
 ## uses non-descriptive profile names purposefully: "default" and "backup-svc"
@@ -164,6 +168,22 @@ if [ -n "${grafana_domain}" ]; then
     ## Write the nginx reverse-proxy config with the real domain baked in —
     ## this file can't be committed as static content since it needs the
     ## domain substituted at boot time, not at repo-write time
+    ## Optionally fetch the Loki push secret and build an extra nginx location
+    ## block for it — only when threat intel enrichment is enabled, since the
+    ## SSM parameter doesn't exist otherwise
+    LOKI_LOCATION_BLOCK=""
+    if [ "${enable_threat_intel}" = "true" ]; then
+      LOKI_PUSH_SECRET=$(aws ssm get-parameter --name /cloud-siem/loki_push_secret --with-decryption --region ${aws_region} --query Parameter.Value --output text)
+      LOKI_LOCATION_BLOCK="
+    location /loki/push {
+        if (\$http_x_loki_push_secret != \"$LOKI_PUSH_SECRET\") {
+            return 403;
+        }
+        proxy_pass http://loki:3100/loki/api/v1/push;
+        proxy_set_header Host \$host;
+    }
+"
+    fi
     cat > /home/ubuntu/cloud-siem/nginx-grafana.conf <<PROXYEOF
 server {
     listen 443 ssl;
@@ -179,7 +199,7 @@ server {
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
     }
-}
+$LOKI_LOCATION_BLOCK}
 PROXYEOF
 
   else

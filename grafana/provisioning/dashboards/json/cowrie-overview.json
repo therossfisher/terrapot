@@ -5,6 +5,18 @@
   "schemaVersion": 39,
   "refresh": "30s",
   "time": { "from": "now-6h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "exclude_ip",
+        "type": "textbox",
+        "label": "Exclude IP (optional)",
+        "description": "Set this to your own IP to hide your own testing/admin traffic from every panel below.",
+        "query": "",
+        "current": { "text": "__EXCLUDE_IP_PLACEHOLDER__", "value": "__EXCLUDE_IP_PLACEHOLDER__" }
+      }
+    ]
+  },
   "panels": [
     {
       "id": 1,
@@ -14,7 +26,7 @@
       "datasource": { "type": "loki", "uid": "Loki" },
       "targets": [
         {
-          "expr": "count_over_time({job=\"cowrie\"} | json | eventid=\"cowrie.session.connect\" [5m])",
+          "expr": "count_over_time({job=\"cowrie\"} | json | eventid=\"cowrie.session.connect\" | src_ip != \"$exclude_ip\" [5m])",
           "refId": "A"
         }
       ]
@@ -27,7 +39,7 @@
       "datasource": { "type": "loki", "uid": "Loki" },
       "targets": [
         {
-          "expr": "{job=\"cowrie\"} | json | eventid=\"cowrie.command.input\" | line_format \"{{.src_ip}} ran: {{.input}}\"",
+          "expr": "{job=\"cowrie\"} | json | eventid=\"cowrie.command.input\" | src_ip != \"$exclude_ip\" | line_format \"{{.src_ip}} ran: {{.input}}\"",
           "refId": "A"
         }
       ]
@@ -40,8 +52,45 @@
       "datasource": { "type": "loki", "uid": "Loki" },
       "targets": [
         {
-          "expr": "topk(10, sum by (src_ip) (count_over_time({job=\"cowrie\"} | json | eventid=\"cowrie.session.connect\" [6h])))",
+          "expr": "topk(10, sum by (src_ip) (count_over_time({job=\"cowrie\"} | json | eventid=\"cowrie.session.connect\" | src_ip != \"$exclude_ip\" [6h])))",
           "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Threat Intel \u2014 AbuseIPDB Enrichment",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 26 },
+      "datasource": { "type": "loki", "uid": "Loki" },
+      "targets": [
+        {
+          "expr": "{service=\"cloud-siem-threat-intel\"} | json | src_ip != \"$exclude_ip\"",
+          "refId": "A"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "source": "Line",
+            "format": "json"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Line": true,
+              "tsNs": true,
+              "id": true,
+              "labels": true,
+              "Time": true,
+              "total_reports": true
+            },
+            "indexByName": {},
+            "renameByName": {}
+          }
         }
       ]
     }

@@ -122,3 +122,22 @@ variable "enable_web_honeypot_routing" {
   type        = bool
   default     = false
 }
+
+variable "enable_threat_intel" {
+  description = "Deploy threat intel enrichment (AbuseIPDB lookups on attacker IPs)"
+  type        = bool
+  default     = false
+}
+
+variable "abuseipdb_api_key" {
+  description = "API key for AbuseIPDB threat intel lookups (required only if enable_threat_intel = true)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "exclude_ip" {
+  description = "Optional IP address to exclude from all Grafana dashboard panels (e.g. your own home/admin IP, so testing traffic doesn't pollute the honeypot data)"
+  type        = string
+  default     = ""
+}

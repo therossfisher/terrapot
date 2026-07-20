@@ -4,15 +4,23 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
+    archive = {
+      source  = "hashicorp/archive"
+      version = "~> 2.4"
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.6"
+    }
   }
- 
+
   backend "s3" {
-  bucket       = "cloud-siem-tfstate-rossfisher-is-cool"
-  key          = "cloud-siem/terraform.tfstate"
-  region       = "us-east-1"
-  encrypt      = true
-  use_lockfile = true
- }
+    bucket       = "cloud-siem-tfstate-rossfisher-is-cool"
+    key          = "cloud-siem/terraform.tfstate"
+    region       = "us-east-1"
+    encrypt      = true
+    use_lockfile = true
+  }
 }
 
 provider "aws" {
@@ -58,8 +66,10 @@ resource "aws_instance" "cloud_siem" {
     enable_grafana     = var.enable_grafana
     bucket_name        = var.bucket_name
 
-    grafana_domain    = var.grafana_domain
-    letsencrypt_email = var.letsencrypt_email
+    grafana_domain      = var.grafana_domain
+    exclude_ip          = var.exclude_ip
+    letsencrypt_email   = var.letsencrypt_email
+    enable_threat_intel = var.enable_threat_intel
 
     enable_thinkst_canary            = var.enable_thinkst_canary
     thinkst_canary_access_key_id     = var.thinkst_canary_access_key_id
@@ -84,7 +94,6 @@ resource "aws_s3_bucket" "cloud_siem_logs" {
   # checkov:skip=CKV_AWS_144:Ephemeral bucket (force_destroy), torn down every session — no durable data to replicate
   # checkov:skip=CKV_AWS_21:Ephemeral bucket, short single-session lifecycle — versioning not meaningful here
   # checkov:skip=CKV_AWS_18:This bucket is itself the log destination; access logging would require a second bucket for marginal value
-  # checkov:skip=CKV2_AWS_62:No event-driven automation consumes this bucket currently — future feature, not in scope
   # checkov:skip=CKV2_AWS_61:Ephemeral bucket, force_destroy every session — no long-term objects requiring lifecycle rules
   bucket        = var.bucket_name
   force_destroy = true
@@ -371,6 +380,20 @@ resource "aws_ssm_parameter" "grafana_admin_password" {
   value = var.grafana_admin_password
 }
 
+resource "random_password" "loki_push_secret" {
+  count   = var.enable_threat_intel ? 1 : 0
+  length  = 32
+  special = false
+}
+
+resource "aws_ssm_parameter" "loki_push_secret" {
+  count = var.enable_threat_intel ? 1 : 0
+  #checkov:skip=CKV_AWS_337:Using AWS-managed SSM key (aws/ssm), not a customer-managed CMK, CMK cost not justified.
+  name  = "/cloud-siem/loki_push_secret"
+  type  = "SecureString"
+  value = random_password.loki_push_secret[0].result
+}
+
 resource "aws_iam_role_policy" "cloud_siem_ssm_policy" {
   name = "cloud-siem-ssm-read"
   role = aws_iam_role.cloud_siem_ec2_role.id
@@ -384,7 +407,8 @@ resource "aws_iam_role_policy" "cloud_siem_ssm_policy" {
         Resource = [
           aws_ssm_parameter.dshield_userid.arn,
           aws_ssm_parameter.dshield_authkey.arn,
-          aws_ssm_parameter.grafana_admin_password.arn
+          aws_ssm_parameter.grafana_admin_password.arn,
+          aws_ssm_parameter.loki_push_secret[0].arn
         ]
       },
       {

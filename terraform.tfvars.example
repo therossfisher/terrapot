@@ -16,42 +16,21 @@ dshield_authkey = "your-dshield-authkey"
 grafana_admin_user     = "admin"
 grafana_admin_password = "choose-a-real-password-do-not-leave-blank"
 
-# optional — e.g. "grafana.yourdomain.com", requires Route53 hosted zone for DNS-01 cert validation
-grafana_domain         = "" 
-
-# Optional — defaults shown, override if needed
-# enable_dshield = true
-# enable_grafana = true# Copy this file to terraform.tfvars and fill in real values.
-# terraform.tfvars is gitignored — never commit real secrets.
-
-# Path to your SSH public key (private key stays on your machine)
-public_key_path = "~/.ssh/your-key.pub"
-
-# Must be globally unique across all of AWS S3 — add random characters if taken
-bucket_name = "your-globally-unique-bucket-name"
-
-# --- REQUIRED — leaving these blank will crash isc-agent on boot ---
-# Free signup at https://isc.sans.edu (create an account, generate an API key)
-dshield_userid  = "your-dshield-userid"
-dshield_authkey = "your-dshield-authkey"
-
-# --- REQUIRED — leaving this blank makes Grafana silently default to admin/admin ---
-grafana_admin_user     = "admin"
-grafana_admin_password = "choose-a-real-password-do-not-leave-blank"
+# Optional — exclude your own IP from showing up in any Grafana dashboard panel
+# (useful so your own testing/admin traffic doesn't pollute the honeypot data)
+exclude_ip = ""
 
 # Optional — Grafana over HTTPS on a subdomain (e.g. "grafana.yourdomain.com").
 # Requires a Route53 hosted zone you control — Certbot uses DNS-01 validation
 # (a temporary TXT record) to prove domain ownership and issue the certificate.
 # After each terraform apply, manually point this subdomain's DNS record at the
 # instance's new public IP (not automated — see README).
-grafana_domain = ""
+grafana_domain         = ""
+route53_hosted_zone_id = ""
 
-# add a working email here, Let's Encrypt requires a contact email for expiry notices.
-variable "letsencrypt_email" {
-  description = "Contact email for Let's Encrypt certificate expiry notices (required only if grafana_domain is set)"
-  type        = string
-  default     = ""
-}
+# Required only if grafana_domain is set — Let's Encrypt needs a contact email
+# for certificate expiry notices.
+letsencrypt_email = ""
 
 # --- Deception grid / canary tripwires — both optional, independent toggles ---
 
@@ -74,3 +53,9 @@ thinkst_canary_secret_access_key = ""
 
 # Optional: stable IP for CloudFront /admin routing to the web honeypot (Phase 8). See README.
 enable_web_honeypot_routing = false
+
+# --- Threat intel enrichment (Phase 10) — optional, off by default ---
+# Enriches attacker IPs against AbuseIPDB and surfaces results in Grafana.
+# Free signup at https://www.abuseipdb.com/register (free tier: 1,000 checks/day)
+enable_threat_intel = false
+abuseipdb_api_key   = ""
