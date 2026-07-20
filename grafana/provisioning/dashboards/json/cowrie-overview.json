@@ -93,6 +93,58 @@
           }
         }
       ]
+          },
+    {
+      "id": 5,
+      "title": "Web Honeypot — Requests Over Time",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 34 },
+      "datasource": { "type": "loki", "uid": "Loki" },
+      "targets": [
+        {
+          "expr": "count_over_time({job=\"isc-agent\"} | json | sip != \"$exclude_ip\" [5m])",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Web Honeypot — Top Requested Paths",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 42 },
+      "datasource": { "type": "loki", "uid": "Loki" },
+      "targets": [
+        {
+          "expr": "topk(10, sum by (url) (count_over_time({job=\"isc-agent\"} | json | sip != \"$exclude_ip\" [6h])))",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Web Honeypot — Top Source IPs",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 50 },
+      "datasource": { "type": "loki", "uid": "Loki" },
+      "targets": [
+        {
+          "expr": "topk(10, sum by (sip) (count_over_time({job=\"isc-agent\"} | json | sip != \"$exclude_ip\" [6h])))",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Web Honeypot — Raw Request Log",
+      "type": "logs",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 58 },
+      "datasource": { "type": "loki", "uid": "Loki" },
+      "targets": [
+        {
+          "expr": "{job=\"isc-agent\"} | json | sip != \"$exclude_ip\" | line_format \"{{.sip}} {{.method}} {{.url}} UA={{.useragent}}\"",
+          "refId": "A"
+        }
+      ]
     }
   ]
-}
+} 
