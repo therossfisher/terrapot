@@ -4,3 +4,4 @@ terraform.tfvars
 *.tfstate.backup
 .env
 logs/
+lambda_functions/*.zip
