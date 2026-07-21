@@ -15,8 +15,8 @@ terraform {
   }
 
   backend "s3" {
-    bucket       = "cloud-siem-tfstate-rossfisher-is-cool"
-    key          = "cloud-siem/terraform.tfstate"
+    bucket       = "terrapot-tfstate-rossfisher-is-cool"
+    key          = "terrapot/terraform.tfstate"
     region       = "us-east-1"
     encrypt      = true
     use_lockfile = true
@@ -39,12 +39,12 @@ data "aws_ami" "ubuntu" {
 
 data "aws_caller_identity" "current" {}
 
-resource "aws_instance" "cloud_siem" {
+resource "aws_instance" "terrapot" {
   ami                    = data.aws_ami.ubuntu.id
   instance_type          = var.instance_type
-  iam_instance_profile   = aws_iam_instance_profile.cloud_siem_profile.name
-  key_name               = aws_key_pair.cloud_siem_key.key_name
-  vpc_security_group_ids = [aws_security_group.cloud_siem_sg.id]
+  iam_instance_profile   = aws_iam_instance_profile.terrapot_profile.name
+  key_name               = aws_key_pair.terrapot_key.key_name
+  vpc_security_group_ids = [aws_security_group.terrapot_sg.id]
   ebs_optimized          = true
   # Detailed monitoring is a paid CloudWatch feature not needed for this project's threat-intel goal; standard monitoring is sufficient.
   # checkov:skip=CKV_AWS_126:Detailed monitoring not required for honeypot threat-intel use case
@@ -81,16 +81,16 @@ resource "aws_instance" "cloud_siem" {
   })
 
   tags = {
-    Name = "cloud_siem"
+    Name = "terrapot"
   }
 }
 
-resource "aws_key_pair" "cloud_siem_key" {
-  key_name   = "cloud-siem-key"
+resource "aws_key_pair" "terrapot_key" {
+  key_name   = "terrapot-key"
   public_key = file(var.public_key_path)
 }
 
-resource "aws_s3_bucket" "cloud_siem_logs" {
+resource "aws_s3_bucket" "terrapot_logs" {
   # checkov:skip=CKV_AWS_144:Ephemeral bucket (force_destroy), torn down every session — no durable data to replicate
   # checkov:skip=CKV_AWS_21:Ephemeral bucket, short single-session lifecycle — versioning not meaningful here
   # checkov:skip=CKV_AWS_18:This bucket is itself the log destination; access logging would require a second bucket for marginal value
@@ -99,12 +99,12 @@ resource "aws_s3_bucket" "cloud_siem_logs" {
   force_destroy = true
 
   tags = {
-    Name = "cloud-siem-logs"
+    Name = "terrapot-logs"
   }
 }
 
-resource "aws_s3_bucket_server_side_encryption_configuration" "cloud_siem_logs_encryption" {
-  bucket = aws_s3_bucket.cloud_siem_logs.id
+resource "aws_s3_bucket_server_side_encryption_configuration" "terrapot_logs_encryption" {
+  bucket = aws_s3_bucket.terrapot_logs.id
 
   rule {
     apply_server_side_encryption_by_default {
@@ -112,8 +112,8 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "cloud_siem_logs_e
     }
   }
 }
-resource "aws_s3_bucket_public_access_block" "cloud_siem_logs_block" {
-  bucket = aws_s3_bucket.cloud_siem_logs.id
+resource "aws_s3_bucket_public_access_block" "terrapot_logs_block" {
+  bucket = aws_s3_bucket.terrapot_logs.id
 
   block_public_acls       = true
   block_public_policy     = true
@@ -121,12 +121,12 @@ resource "aws_s3_bucket_public_access_block" "cloud_siem_logs_block" {
   restrict_public_buckets = true
 }
 
-resource "aws_security_group" "cloud_siem_sg" {
-  name        = "cloud-siem-sg"
-  description = "Security group for cloud-siem honeypot and admin access"
+resource "aws_security_group" "terrapot_sg" {
+  name        = "terrapot-sg"
+  description = "Security group for terrapot honeypot and admin access"
 
   tags = {
-    Name = "cloud-siem-sg"
+    Name = "terrapot-sg"
   }
 }
 
@@ -138,7 +138,7 @@ resource "aws_security_group_rule" "cowrie_ssh" {
   to_port           = 22
   protocol          = "tcp"
   cidr_blocks       = ["0.0.0.0/0"]
-  security_group_id = aws_security_group.cloud_siem_sg.id
+  security_group_id = aws_security_group.terrapot_sg.id
 }
 
 resource "aws_security_group_rule" "admin_ssh" {
@@ -148,7 +148,7 @@ resource "aws_security_group_rule" "admin_ssh" {
   to_port           = var.admin_ssh_port
   protocol          = "tcp"
   cidr_blocks       = ["0.0.0.0/0"]
-  security_group_id = aws_security_group.cloud_siem_sg.id
+  security_group_id = aws_security_group.terrapot_sg.id
 }
 
 # checkov:skip=CKV_AWS_260:Intentional honeypot bait — isc-agent must be reachable on port 80 to attract web scanners
@@ -159,7 +159,7 @@ resource "aws_security_group_rule" "web_honeypot" {
   to_port           = 80
   protocol          = "tcp"
   cidr_blocks       = ["0.0.0.0/0"]
-  security_group_id = aws_security_group.cloud_siem_sg.id
+  security_group_id = aws_security_group.terrapot_sg.id
 }
 
 # checkov:skip=CKV_AWS_382:Instance requires unrestricted outbound for Docker image pulls, S3 log sync, and DShield/ISC reporting
@@ -170,7 +170,7 @@ resource "aws_security_group_rule" "allow_all_egress" {
   to_port           = 0
   protocol          = "-1"
   cidr_blocks       = ["0.0.0.0/0"]
-  security_group_id = aws_security_group.cloud_siem_sg.id
+  security_group_id = aws_security_group.terrapot_sg.id
 }
 
 resource "aws_security_group_rule" "grafana" {
@@ -182,7 +182,7 @@ resource "aws_security_group_rule" "grafana" {
   to_port           = var.grafana_port
   protocol          = "tcp"
   cidr_blocks       = ["0.0.0.0/0"]
-  security_group_id = aws_security_group.cloud_siem_sg.id
+  security_group_id = aws_security_group.terrapot_sg.id
 }
 
 resource "aws_security_group_rule" "grafana_https" {
@@ -194,11 +194,11 @@ resource "aws_security_group_rule" "grafana_https" {
   to_port           = 443
   protocol          = "tcp"
   cidr_blocks       = ["0.0.0.0/0"]
-  security_group_id = aws_security_group.cloud_siem_sg.id
+  security_group_id = aws_security_group.terrapot_sg.id
 }
 
-resource "aws_iam_role" "cloud_siem_ec2_role" {
-  name = "cloud-siem-ec2-role"
+resource "aws_iam_role" "terrapot_ec2_role" {
+  name = "terrapot-ec2-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -214,9 +214,9 @@ resource "aws_iam_role" "cloud_siem_ec2_role" {
   })
 }
 
-resource "aws_iam_role_policy" "cloud_siem_s3_policy" {
-  name = "cloud-siem-s3-write"
-  role = aws_iam_role.cloud_siem_ec2_role.id
+resource "aws_iam_role_policy" "terrapot_s3_policy" {
+  name = "terrapot-s3-write"
+  role = aws_iam_role.terrapot_ec2_role.id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -227,20 +227,20 @@ resource "aws_iam_role_policy" "cloud_siem_s3_policy" {
           "s3:PutObject",
           "s3:GetObject"
         ]
-        Resource = "${aws_s3_bucket.cloud_siem_logs.arn}/*"
+        Resource = "${aws_s3_bucket.terrapot_logs.arn}/*"
       },
       {
         Effect   = "Allow"
         Action   = ["s3:ListBucket"]
-        Resource = aws_s3_bucket.cloud_siem_logs.arn
+        Resource = aws_s3_bucket.terrapot_logs.arn
       }
     ]
   })
 }
 
-resource "aws_iam_instance_profile" "cloud_siem_profile" {
-  name = "cloud-siem-instance-profile"
-  role = aws_iam_role.cloud_siem_ec2_role.name
+resource "aws_iam_instance_profile" "terrapot_profile" {
+  name = "terrapot-instance-profile"
+  role = aws_iam_role.terrapot_ec2_role.name
 }
 
 # --- a DIY Canary: zero-permission decoy IAM user ---
@@ -261,7 +261,7 @@ resource "aws_iam_access_key" "canary_decoy" {
 resource "aws_sns_topic" "canary_alerts" {
   #checkov:skip=CKV_AWS_26:Alert payload is CloudTrail metadata only, no sensitive data. AWS-managed KMS key can't grant EventBridge; CMK not justified for this content.
   count = var.enable_diy_canary ? 1 : 0
-  name  = "cloud-siem-canary-alerts"
+  name  = "terrapot-canary-alerts"
 }
 
 resource "aws_sns_topic_subscription" "canary_alerts_email" {
@@ -274,7 +274,7 @@ resource "aws_sns_topic_subscription" "canary_alerts_email" {
 # --- EventBridge rule: fire on ANY API CALL made by decoy user ---
 resource "aws_cloudwatch_event_rule" "canary_tripwire" {
   count       = var.enable_diy_canary ? 1 : 0
-  name        = "cloud-siem-canary-tripwire"
+  name        = "terrapot-canary-tripwire"
   description = "Fires when the decoy IAM user makes any AWS API call"
 
   event_pattern = jsonencode({
@@ -289,9 +289,9 @@ resource "aws_cloudwatch_event_rule" "canary_tripwire" {
 }
 
 # --- CloudTrail: required for EventBridge to receive "AWS API Call via CloudTrail" events at all ---
-resource "aws_s3_bucket_policy" "cloud_siem_trail_bucket_policy" {
+resource "aws_s3_bucket_policy" "terrapot_trail_bucket_policy" {
   count  = var.enable_diy_canary ? 1 : 0
-  bucket = aws_s3_bucket.cloud_siem_logs.id
+  bucket = aws_s3_bucket.terrapot_logs.id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -301,14 +301,14 @@ resource "aws_s3_bucket_policy" "cloud_siem_trail_bucket_policy" {
         Effect    = "Allow"
         Principal = { Service = "cloudtrail.amazonaws.com" }
         Action    = "s3:GetBucketAcl"
-        Resource  = aws_s3_bucket.cloud_siem_logs.arn
+        Resource  = aws_s3_bucket.terrapot_logs.arn
       },
       {
         Sid       = "AWSCloudTrailWrite"
         Effect    = "Allow"
         Principal = { Service = "cloudtrail.amazonaws.com" }
         Action    = "s3:PutObject"
-        Resource  = "${aws_s3_bucket.cloud_siem_logs.arn}/cloudtrail-logs/AWSLogs/${data.aws_caller_identity.current.account_id}/*"
+        Resource  = "${aws_s3_bucket.terrapot_logs.arn}/cloudtrail-logs/AWSLogs/${data.aws_caller_identity.current.account_id}/*"
         Condition = {
           StringEquals = { "s3:x-amz-acl" = "bucket-owner-full-control" }
         }
@@ -317,21 +317,21 @@ resource "aws_s3_bucket_policy" "cloud_siem_trail_bucket_policy" {
   })
 }
 
-resource "aws_cloudtrail" "cloud_siem_trail" {
+resource "aws_cloudtrail" "terrapot_trail" {
   # checkov:skip=CKV_AWS_67:Single-region trail is a deliberate cost decision made to keep spend low
   # checkov:skip=CKV_AWS_35:Customer-managed KMS key has ongoing cost not justified for this project's scope; default protections apply
   # checkov:skip=CKV_AWS_252:Redundant with existing canary EventBridge->SNS alerting; a second "log delivered" notification adds noise not signal
   # checkov:skip=CKV2_AWS_10:CloudWatch Logs ingestion adds ongoing cost; raw logs already queried directly from S3
   count                         = var.enable_diy_canary ? 1 : 0
-  name                          = "cloud-siem-canary-trail"
-  s3_bucket_name                = aws_s3_bucket.cloud_siem_logs.id
+  name                          = "terrapot-canary-trail"
+  s3_bucket_name                = aws_s3_bucket.terrapot_logs.id
   s3_key_prefix                 = "cloudtrail-logs"
   include_global_service_events = true
   is_multi_region_trail         = false
   enable_logging                = true
   enable_log_file_validation    = true # free integrity check — detects tampering of delivered log files
 
-  depends_on = [aws_s3_bucket_policy.cloud_siem_trail_bucket_policy]
+  depends_on = [aws_s3_bucket_policy.terrapot_trail_bucket_policy]
 }
 
 resource "aws_cloudwatch_event_target" "canary_to_sns" {
@@ -361,21 +361,21 @@ resource "aws_sns_topic_policy" "canary_alerts_policy" {
 
 resource "aws_ssm_parameter" "dshield_userid" {
   #checkov:skip=CKV_AWS_337:Using AWS-managed SSM key (aws/ssm), not a customer-managed CMK — CMK adds $1/mo per key, not justified for this scope. Default key still encrypts at rest via KMS
-  name  = "/cloud-siem/dshield_userid"
+  name  = "/terrapot/dshield_userid"
   type  = "SecureString"
   value = var.dshield_userid
 }
 
 resource "aws_ssm_parameter" "dshield_authkey" {
   #checkov:skip=CKV_AWS_337:Same as dshield_userid — AWS-managed key sufficient, CMK cost not justified.
-  name  = "/cloud-siem/dshield_authkey"
+  name  = "/terrapot/dshield_authkey"
   type  = "SecureString"
   value = var.dshield_authkey
 }
 
 resource "aws_ssm_parameter" "grafana_admin_password" {
   #checkov:skip=CKV_AWS_337:Same as dshield_userid — AWS-managed key sufficient, CMK cost not justified.
-  name  = "/cloud-siem/grafana_admin_password"
+  name  = "/terrapot/grafana_admin_password"
   type  = "SecureString"
   value = var.grafana_admin_password
 }
@@ -389,14 +389,14 @@ resource "random_password" "loki_push_secret" {
 resource "aws_ssm_parameter" "loki_push_secret" {
   count = var.enable_threat_intel ? 1 : 0
   #checkov:skip=CKV_AWS_337:Using AWS-managed SSM key (aws/ssm), not a customer-managed CMK, CMK cost not justified.
-  name  = "/cloud-siem/loki_push_secret"
+  name  = "/terrapot/loki_push_secret"
   type  = "SecureString"
   value = random_password.loki_push_secret[0].result
 }
 
-resource "aws_iam_role_policy" "cloud_siem_ssm_policy" {
-  name = "cloud-siem-ssm-read"
-  role = aws_iam_role.cloud_siem_ec2_role.id
+resource "aws_iam_role_policy" "terrapot_ssm_policy" {
+  name = "terrapot-ssm-read"
+  role = aws_iam_role.terrapot_ec2_role.id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -420,11 +420,11 @@ resource "aws_iam_role_policy" "cloud_siem_ssm_policy" {
   })
 }
 
-resource "aws_iam_role_policy" "cloud_siem_route53_policy" {
+resource "aws_iam_role_policy" "terrapot_route53_policy" {
   count = var.grafana_domain != "" ? 1 : 0
 
-  name = "cloud-siem-route53-dns01"
-  role = aws_iam_role.cloud_siem_ec2_role.id
+  name = "terrapot-route53-dns01"
+  role = aws_iam_role.terrapot_ec2_role.id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -453,10 +453,10 @@ resource "aws_iam_role_policy" "cloud_siem_route53_policy" {
 
 resource "aws_eip" "web_honeypot" {
   count    = var.enable_web_honeypot_routing ? 1 : 0
-  instance = aws_instance.cloud_siem.id
+  instance = aws_instance.terrapot.id
   domain   = "vpc"
 
   tags = {
-    Name = "cloud-siem-web-honeypot-eip"
+    Name = "terrapot-web-honeypot-eip"
   }
 }

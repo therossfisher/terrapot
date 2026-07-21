@@ -43,20 +43,20 @@ unzip awscliv2.zip
 ./aws/install
 rm -rf awscliv2.zip aws/
 
-## clone cloud-siem repo to new EC2 instance
+## clone terrapot repo to new EC2 instance
 
 cd /home/ubuntu
-git clone https://github.com/therossfisher/cloud-siem.git
-cd cloud-siem
+git clone https://github.com/therossfisher/terrapot.git
+cd terrapot
 ## Bake the exclude_ip value into the dashboard's default, if one was provided —
 ## replaces the placeholder committed in the repo so the dashboard works with
 ## zero manual setup for anyone who doesn't set this variable (stays empty/no-op)
-sed -i "s/__EXCLUDE_IP_PLACEHOLDER__/${exclude_ip}/g" /home/ubuntu/cloud-siem/grafana/provisioning/dashboards/json/cowrie-overview.json
+sed -i "s/__EXCLUDE_IP_PLACEHOLDER__/${exclude_ip}/g" /home/ubuntu/terrapot/grafana/provisioning/dashboards/json/cowrie-overview.json
 
 ## Builds decoy AWS credentials file based on which canaries are enabled.
 ## uses non-descriptive profile names purposefully: "default" and "backup-svc"
 
-CANARY_CREDS_FILE="/home/ubuntu/cloud-siem/canary-creds-tmp"
+CANARY_CREDS_FILE="/home/ubuntu/terrapot/canary-creds-tmp"
 > "$CANARY_CREDS_FILE"
 
 if [ "${enable_thinkst_canary}" = "true" ]; then
@@ -89,8 +89,8 @@ fi
 ## If neither is on, the committed empty template stays exactly as-is,
 ## which results in some random binary data being written to the file by cowrie
 if [ -s "$CANARY_CREDS_FILE" ]; then
-  python3 /home/ubuntu/cloud-siem/inject_canary.py \
-    /home/ubuntu/cloud-siem/cowrie-config/data/fs.pickle \
+  python3 /home/ubuntu/terrapot/inject_canary.py \
+    /home/ubuntu/terrapot/cowrie-config/data/fs.pickle \
     /root/.aws/credentials \
     "$CANARY_CREDS_FILE"
 fi
@@ -101,40 +101,40 @@ rm -f "$CANARY_CREDS_FILE"
 
 cat > .env <<EOF
 ENABLE_DSHIELD=${enable_dshield}
-DSHIELD_USERID=$(aws ssm get-parameter --name /cloud-siem/dshield_userid --with-decryption --region ${aws_region} --query Parameter.Value --output text)
-DSHIELD_AUTHKEY=$(aws ssm get-parameter --name /cloud-siem/dshield_authkey --with-decryption --region ${aws_region} --query Parameter.Value --output text)
+DSHIELD_USERID=$(aws ssm get-parameter --name /terrapot/dshield_userid --with-decryption --region ${aws_region} --query Parameter.Value --output text)
+DSHIELD_AUTHKEY=$(aws ssm get-parameter --name /terrapot/dshield_authkey --with-decryption --region ${aws_region} --query Parameter.Value --output text)
 GRAFANA_ADMIN_USER=${grafana_admin_user}
-GRAFANA_ADMIN_PASSWORD=$(aws ssm get-parameter --name /cloud-siem/grafana_admin_password --with-decryption --region ${aws_region} --query Parameter.Value --output text)
+GRAFANA_ADMIN_PASSWORD=$(aws ssm get-parameter --name /terrapot/grafana_admin_password --with-decryption --region ${aws_region} --query Parameter.Value --output text)
 EOF
 
 ## bring up the stack - conditionally include Grafana based on terraform variable
 
-mkdir -p /home/ubuntu/cloud-siem/logs/cowrie
-mkdir -p /home/ubuntu/cloud-siem/logs/isc-agent
-chown -R ubuntu:ubuntu /home/ubuntu/cloud-siem/logs/isc-agent
-chown -R 999:999 /home/ubuntu/cloud-siem/logs/cowrie
-chmod -R 755 /home/ubuntu/cloud-siem/logs
+mkdir -p /home/ubuntu/terrapot/logs/cowrie
+mkdir -p /home/ubuntu/terrapot/logs/isc-agent
+chown -R ubuntu:ubuntu /home/ubuntu/terrapot/logs/isc-agent
+chown -R 999:999 /home/ubuntu/terrapot/logs/cowrie
+chmod -R 755 /home/ubuntu/terrapot/logs
 
 ## Generate a session timestamp and build S3 sync script
 
 SESSION_ID=$(date +%Y-%m-%d-%H%M)
-echo "$SESSION_ID" > /home/ubuntu/cloud-siem/.session_id
+echo "$SESSION_ID" > /home/ubuntu/terrapot/.session_id
 
-cat > /home/ubuntu/cloud-siem/sync-logs.sh <<'SYNCEOF'
+cat > /home/ubuntu/terrapot/sync-logs.sh <<'SYNCEOF'
 #!/bin/bash
-SESSION_ID=$(cat /home/ubuntu/cloud-siem/.session_id)
-/usr/local/bin/aws s3 sync /home/ubuntu/cloud-siem/logs/ s3://${bucket_name}/$SESSION_ID/ --only-show-errors
+SESSION_ID=$(cat /home/ubuntu/terrapot/.session_id)
+/usr/local/bin/aws s3 sync /home/ubuntu/terrapot/logs/ s3://${bucket_name}/$SESSION_ID/ --only-show-errors
 SYNCEOF
 
-chmod +x /home/ubuntu/cloud-siem/sync-logs.sh
-chown ubuntu:ubuntu /home/ubuntu/cloud-siem/sync-logs.sh /home/ubuntu/cloud-siem/.session_id
+chmod +x /home/ubuntu/terrapot/sync-logs.sh
+chown ubuntu:ubuntu /home/ubuntu/terrapot/sync-logs.sh /home/ubuntu/terrapot/.session_id
 
 ## Schedule the sync every 5 minutes via cron, logging output so failures aren't silent
 
-(crontab -u ubuntu -l 2>/dev/null || true; echo "*/5 * * * * /home/ubuntu/cloud-siem/sync-logs.sh >> /home/ubuntu/cloud-siem/sync.log 2>&1") | crontab -u ubuntu -
+(crontab -u ubuntu -l 2>/dev/null || true; echo "*/5 * * * * /home/ubuntu/terrapot/sync-logs.sh >> /home/ubuntu/terrapot/sync.log 2>&1") | crontab -u ubuntu -
 
 ## Run one sync immediately so logs start shipping right away, not after the first 5-minute wait
-sudo -u ubuntu /home/ubuntu/cloud-siem/sync-logs.sh >> /home/ubuntu/cloud-siem/sync.log 2>&1
+sudo -u ubuntu /home/ubuntu/terrapot/sync-logs.sh >> /home/ubuntu/terrapot/sync.log 2>&1
 
 # Create 1GB swap file to protect against OOM kills on t3.micro (1GB RAM)
 # || true on each step: a swap failure should degrade gracefully, not take down
@@ -173,7 +173,7 @@ if [ -n "${grafana_domain}" ]; then
     ## SSM parameter doesn't exist otherwise
     LOKI_LOCATION_BLOCK=""
     if [ "${enable_threat_intel}" = "true" ]; then
-      LOKI_PUSH_SECRET=$(aws ssm get-parameter --name /cloud-siem/loki_push_secret --with-decryption --region ${aws_region} --query Parameter.Value --output text)
+      LOKI_PUSH_SECRET=$(aws ssm get-parameter --name /terrapot/loki_push_secret --with-decryption --region ${aws_region} --query Parameter.Value --output text)
       LOKI_LOCATION_BLOCK="
     location /loki/push {
         if (\$http_x_loki_push_secret != \"$LOKI_PUSH_SECRET\") {
@@ -184,7 +184,7 @@ if [ -n "${grafana_domain}" ]; then
     }
 "
     fi
-    cat > /home/ubuntu/cloud-siem/nginx-grafana.conf <<PROXYEOF
+    cat > /home/ubuntu/terrapot/nginx-grafana.conf <<PROXYEOF
 server {
     listen 443 ssl;
     server_name ${grafana_domain};

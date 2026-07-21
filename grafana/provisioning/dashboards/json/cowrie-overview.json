@@ -65,7 +65,7 @@
       "datasource": { "type": "loki", "uid": "Loki" },
       "targets": [
         {
-          "expr": "{service=\"cloud-siem-threat-intel\"} | json | src_ip != \"$exclude_ip\"",
+          "expr": "{service=\"terrapot-threat-intel\"} | json | src_ip != \"$exclude_ip\"",
           "refId": "A"
         }
       ],

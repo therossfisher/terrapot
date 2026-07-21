@@ -98,7 +98,7 @@ def push_to_loki(results):
     payload = {
         "streams": [
             {
-                "stream": {"service": "cloud-siem-threat-intel"},
+                "stream": {"service": "terrapot-threat-intel"},
                 "values": values
             }
         ]

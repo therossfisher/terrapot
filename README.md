@@ -1,4 +1,4 @@
-# cloud-siem
+# terrapot
 
 A cloud-hosted, containerized threat intelligence platform: a live DShield/Cowrie honeypot on AWS, provisioned entirely as code, feeding a Grafana dashboard, with CI/CD security scanning and AWS-native threat detection layered on top.
 
@@ -30,8 +30,8 @@ Terraform provisions the full AWS foundation: EC2 instance, security groups, S3 
 Requirements: an AWS account, Terraform installed, an SSH key pair.
 
 ```bash
-git clone https://github.com/therossfisher/cloud-siem.git
-cd cloud-siem
+git clone https://github.com/therossfisher/terrapot.git
+cd terrapot
 cp terraform.tfvars.example terraform.tfvars
 # edit terraform.tfvars: your SSH public key path, a globally-unique S3 bucket name
 terraform init
