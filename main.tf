@@ -269,6 +269,13 @@ resource "aws_sns_topic_subscription" "canary_alerts_email" {
   topic_arn = aws_sns_topic.canary_alerts[0].arn
   protocol  = "email"
   endpoint  = var.canary_alert_email
+
+  lifecycle {
+    precondition {
+      condition     = var.canary_alert_email != ""
+      error_message = "canary_alert_email must be set when enable_diy_canary is true"
+    }
+  }
 }
 
 # --- EventBridge rule: fire on ANY API CALL made by decoy user ---
@@ -404,13 +411,14 @@ resource "aws_iam_role_policy" "terrapot_ssm_policy" {
       {
         Effect = "Allow"
         Action = ["ssm:GetParameter", "ssm:GetParametersByPath"]
-        Resource = [
+        Resource = concat([
           aws_ssm_parameter.dshield_userid.arn,
           aws_ssm_parameter.dshield_authkey.arn,
           aws_ssm_parameter.grafana_admin_password.arn,
-          aws_ssm_parameter.loki_push_secret[0].arn
-        ]
+        ], aws_ssm_parameter.loki_push_secret[*].arn)
+
       },
+
       {
         Effect   = "Allow"
         Action   = ["kms:Decrypt"]

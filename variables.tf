@@ -88,13 +88,13 @@ variable "dshield_authkey" {
 variable "enable_diy_canary" {
   description = "Create a zero-permission IAM decoy user with EventBridge/SNS alerting"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "canary_alert_email" {
-  description = "Email address to receive canary trip-wire alerts via SNS"
+  description = "Email address to receive canary trip-wire alerts via SNS (required if enable_diy_canary = true)"
   type        = string
-  default     = "fisher.ross1776@gmail.com"
+  default     = ""
 }
 
 variable "enable_thinkst_canary" {
