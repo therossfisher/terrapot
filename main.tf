@@ -47,6 +47,18 @@ module "canary" {
   account_id         = data.aws_caller_identity.current.account_id
 }
 
+module "threat_intel" {
+  count  = var.enable_threat_intel ? 1 : 0
+  source = "./modules/threat_intel"
+
+  bucket_id         = aws_s3_bucket.terrapot_logs.id
+  bucket_arn        = aws_s3_bucket.terrapot_logs.arn
+  account_id        = data.aws_caller_identity.current.account_id
+  aws_region        = var.aws_region
+  abuseipdb_api_key = var.abuseipdb_api_key
+  grafana_domain    = var.grafana_domain
+}
+
 data "aws_caller_identity" "current" {}
 
 resource "aws_instance" "terrapot" {
@@ -274,20 +286,6 @@ resource "aws_ssm_parameter" "grafana_admin_password" {
   value = var.grafana_admin_password
 }
 
-resource "random_password" "loki_push_secret" {
-  count   = var.enable_threat_intel ? 1 : 0
-  length  = 32
-  special = false
-}
-
-resource "aws_ssm_parameter" "loki_push_secret" {
-  count = var.enable_threat_intel ? 1 : 0
-  #checkov:skip=CKV_AWS_337:Using AWS-managed SSM key (aws/ssm), not a customer-managed CMK, CMK cost not justified.
-  name  = "/terrapot/loki_push_secret"
-  type  = "SecureString"
-  value = random_password.loki_push_secret[0].result
-}
-
 resource "aws_iam_role_policy" "terrapot_ssm_policy" {
   name = "terrapot-ssm-read"
   role = aws_iam_role.terrapot_ec2_role.id
@@ -302,7 +300,7 @@ resource "aws_iam_role_policy" "terrapot_ssm_policy" {
           aws_ssm_parameter.dshield_userid.arn,
           aws_ssm_parameter.dshield_authkey.arn,
           aws_ssm_parameter.grafana_admin_password.arn,
-        ], aws_ssm_parameter.loki_push_secret[*].arn)
+        ], module.threat_intel[*].loki_push_secret_arn)
 
       },
 
