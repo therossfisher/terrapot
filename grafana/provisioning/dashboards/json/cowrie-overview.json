@@ -126,6 +126,7 @@
               "tsNs": true,
               "id": true,
               "labels": true,
+              "labelTypes": true,
               "Time": true,
               "total_reports": true
             },
@@ -225,6 +226,7 @@
               "tsNs": true,
               "id": true,
               "labels": true,
+              "labelTypes": true,
               "Time": true,
               "total_reports": true
             },
