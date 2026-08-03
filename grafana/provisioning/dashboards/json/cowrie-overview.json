@@ -82,21 +82,128 @@
       ]
     },
     {
-      "id": 4,
-      "title": "Attacker Country Breakdown",
-      "type": "piechart",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "id": 14,
+      "title": "Attacker Locations",
+      "type": "geomap",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 4 },
       "datasource": { "type": "loki", "uid": "Loki" },
-      "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
-        "pieType": "pie",
-        "displayLabels": ["name", "percent"],
-        "legend": { "displayMode": "table", "placement": "right", "values": ["value", "percent"] }
-      },
       "targets": [
         {
           "expr": "sum by (country_code) (count_over_time({service=\"terrapot-threat-intel\"} | json | src_ip != \"$exclude_ip\" [$__range]))",
           "legendFormat": "{{country_code}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "basemap": { "type": "default" },
+        "layers": [
+          {
+            "type": "markers",
+            "config": {
+              "style": {
+                "size": { "fixed": 5, "min": 2, "max": 20, "field": "Value" },
+                "color": { "fixed": "red" }
+              }
+            },
+            "location": { "mode": "lookup", "lookup": "country_code" }
+          }
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "title": "Top Source IPs",
+      "type": "barchart",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
+      "datasource": { "type": "loki", "uid": "Loki" },
+      "targets": [
+        {
+          "expr": "topk(10, sum by (src_ip) (count_over_time({job=\"cowrie\"} | json | eventid=\"cowrie.session.connect\" | src_ip != \"$exclude_ip\" [$__range])))",
+          "legendFormat": "{{src_ip}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "showValue": "always"
+      }
+    },
+    {
+      "id": 15,
+      "title": "Top Commands Attempted",
+      "type": "barchart",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
+      "datasource": { "type": "loki", "uid": "Loki" },
+      "targets": [
+        {
+          "expr": "topk(10, sum by (input) (count_over_time({job=\"cowrie\"} | json | eventid=\"cowrie.command.input\" | src_ip != \"$exclude_ip\" [$__range])))",
+          "legendFormat": "{{input}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "showValue": "always"
+      }
+    },
+    {
+      "id": 8,
+      "title": "Web Honeypot — Top Source IPs",
+      "type": "barchart",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 22 },
+      "datasource": { "type": "loki", "uid": "Loki" },
+      "targets": [
+        {
+          "expr": "topk(10, sum by (sip) (count_over_time({job=\"isc-agent\"} | json | sip != \"$exclude_ip\" [$__range])))",
+          "legendFormat": "{{sip}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "showValue": "always"
+      }
+    },
+    {
+      "id": 9,
+      "title": "Web Honeypot — Top Requested Paths",
+      "type": "barchart",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 22 },
+      "datasource": { "type": "loki", "uid": "Loki" },
+      "targets": [
+        {
+          "expr": "topk(10, sum by (url) (count_over_time({job=\"isc-agent\"} | json | sip != \"$exclude_ip\" [$__range])))",
+          "legendFormat": "{{url}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "showValue": "always"
+      }
+    },
+    {
+      "id": 5,
+      "title": "Connections Over Time",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 30 },
+      "datasource": { "type": "loki", "uid": "Loki" },
+      "targets": [
+        {
+          "expr": "count_over_time({job=\"cowrie\"} | json | eventid=\"cowrie.session.connect\" | src_ip != \"$exclude_ip\" [5m])",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Web Honeypot — Requests Over Time",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 30 },
+      "datasource": { "type": "loki", "uid": "Loki" },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({job=\"isc-agent\"} | json | sip != \"$exclude_ip\" [5m]))",
           "refId": "A"
         }
       ]
@@ -105,7 +212,7 @@
       "id": 13,
       "title": "Malicious IPs — Detail (score > 90)",
       "type": "table",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 38 },
       "datasource": { "type": "loki", "uid": "Loki" },
       "targets": [
         {
@@ -137,75 +244,10 @@
       ]
     },
     {
-      "id": 5,
-      "title": "Connections Over Time",
-      "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
-      "datasource": { "type": "loki", "uid": "Loki" },
-      "targets": [
-        {
-          "expr": "count_over_time({job=\"cowrie\"} | json | eventid=\"cowrie.session.connect\" | src_ip != \"$exclude_ip\" [5m])",
-          "refId": "A"
-        }
-      ]
-    },
-    {
-      "id": 6,
-      "title": "Web Honeypot — Requests Over Time",
-      "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
-      "datasource": { "type": "loki", "uid": "Loki" },
-      "targets": [
-        {
-          "expr": "sum(count_over_time({job=\"isc-agent\"} | json | sip != \"$exclude_ip\" [5m]))",
-          "refId": "A"
-        }
-      ]
-    },
-    {
-      "id": 7,
-      "title": "Top Source IPs",
-      "type": "table",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
-      "datasource": { "type": "loki", "uid": "Loki" },
-      "targets": [
-        {
-          "expr": "topk(10, sum by (src_ip) (count_over_time({job=\"cowrie\"} | json | eventid=\"cowrie.session.connect\" | src_ip != \"$exclude_ip\" [$__range])))",
-          "refId": "A"
-        }
-      ]
-    },
-    {
-      "id": 8,
-      "title": "Web Honeypot — Top Source IPs",
-      "type": "table",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
-      "datasource": { "type": "loki", "uid": "Loki" },
-      "targets": [
-        {
-          "expr": "topk(10, sum by (sip) (count_over_time({job=\"isc-agent\"} | json | sip != \"$exclude_ip\" [$__range])))",
-          "refId": "A"
-        }
-      ]
-    },
-    {
-      "id": 9,
-      "title": "Web Honeypot — Top Requested Paths",
-      "type": "table",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 28 },
-      "datasource": { "type": "loki", "uid": "Loki" },
-      "targets": [
-        {
-          "expr": "topk(10, sum by (url) (count_over_time({job=\"isc-agent\"} | json | sip != \"$exclude_ip\" [$__range])))",
-          "refId": "A"
-        }
-      ]
-    },
-    {
       "id": 10,
       "title": "Threat Intel — AbuseIPDB Enrichment",
       "type": "table",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 28 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 38 },
       "datasource": { "type": "loki", "uid": "Loki" },
       "targets": [
         {
@@ -240,7 +282,7 @@
       "id": 11,
       "title": "Commands Typed by Attackers",
       "type": "logs",
-      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 36 },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 46 },
       "datasource": { "type": "loki", "uid": "Loki" },
       "targets": [
         {
@@ -253,7 +295,7 @@
       "id": 12,
       "title": "Web Honeypot — Raw Request Log",
       "type": "logs",
-      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 46 },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 56 },
       "datasource": { "type": "loki", "uid": "Loki" },
       "targets": [
         {
