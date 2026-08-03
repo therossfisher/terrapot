@@ -36,7 +36,7 @@ letsencrypt_email = ""
 
 # DIY canary: a zero-permission decoy IAM user planted in Cowrie's filesystem.
 # Any use of these credentials fires an EventBridge -> SNS email alert.
-enable_diy_canary  = true
+enable_diy_canary  = false
 canary_alert_email = "you@example.com"
 
 # Thinkst canary: an external canarytokens.org AWS-key token, also planted in
