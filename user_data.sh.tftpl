@@ -120,6 +120,9 @@ chmod -R 755 /home/ubuntu/terrapot/logs
 SESSION_ID=$(date +%Y-%m-%d-%H%M)
 echo "$SESSION_ID" > /home/ubuntu/terrapot/.session_id
 
+touch /home/ubuntu/terrapot/sync.log
+chown ubuntu:ubuntu /home/ubuntu/terrapot/sync.log
+
 cat > /home/ubuntu/terrapot/sync-logs.sh <<'SYNCEOF'
 #!/bin/bash
 SESSION_ID=$(cat /home/ubuntu/terrapot/.session_id)
