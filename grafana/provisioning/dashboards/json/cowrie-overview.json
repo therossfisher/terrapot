@@ -118,62 +118,150 @@
     {
       "id": 7,
       "title": "Top Source IPs",
-      "type": "barchart",
+      "type": "table",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
       "datasource": { "type": "loki", "uid": "Loki" },
       "targets": [
         {
           "expr": "topk(10, sum by (src_ip) (count_over_time({job=\"cowrie\"} | json | eventid=\"cowrie.session.connect\" | src_ip != \"$exclude_ip\" [$__range])))",
           "legendFormat": "{{src_ip}}",
-          "refId": "A"
+          "refId": "A",
+          "instant": true,
+          "range": false
         }
       ],
-      "options": { "orientation": "horizontal", "showValue": "always" }
+      "transformations": [
+        { "id": "labelsToFields", "options": {} },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": { "Time": true },
+            "renameByName": { "src_ip": "Source IP", "Value": "Sessions" }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Sessions" },
+            "properties": [
+              { "id": "custom.cellOptions", "value": { "type": "gauge", "mode": "gradient" } },
+              { "id": "color", "value": { "mode": "continuous-GrYlRd" } }
+            ]
+          }
+        ]
+      }
     },
     {
       "id": 15,
       "title": "Top Commands Attempted",
-      "type": "barchart",
+      "type": "table",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
       "datasource": { "type": "loki", "uid": "Loki" },
       "targets": [
         {
           "expr": "topk(10, sum by (input) (count_over_time({job=\"cowrie\"} | json | eventid=\"cowrie.command.input\" | src_ip != \"$exclude_ip\" [$__range])))",
           "legendFormat": "{{input}}",
-          "refId": "A"
+          "refId": "A",
+          "instant": true,
+          "range": false
         }
       ],
-      "options": { "orientation": "horizontal", "showValue": "always" }
+      "transformations": [
+        { "id": "labelsToFields", "options": {} },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": { "Time": true },
+            "renameByName": { "input": "Command", "Value": "Count" }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Count" },
+            "properties": [
+              { "id": "custom.cellOptions", "value": { "type": "gauge", "mode": "gradient" } },
+              { "id": "color", "value": { "mode": "continuous-GrYlRd" } }
+            ]
+          }
+        ]
+      }
     },
     {
       "id": 8,
       "title": "Web Honeypot — Top Source IPs",
-      "type": "barchart",
+      "type": "table",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 22 },
       "datasource": { "type": "loki", "uid": "Loki" },
       "targets": [
         {
           "expr": "topk(10, sum by (sip) (count_over_time({job=\"isc-agent\"} | json | sip != \"$exclude_ip\" [$__range])))",
           "legendFormat": "{{sip}}",
-          "refId": "A"
+          "refId": "A",
+          "instant": true,
+          "range": false
         }
       ],
-      "options": { "orientation": "horizontal", "showValue": "always" }
+      "transformations": [
+        { "id": "labelsToFields", "options": {} },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": { "Time": true },
+            "renameByName": { "sip": "Source IP", "Value": "Requests" }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Requests" },
+            "properties": [
+              { "id": "custom.cellOptions", "value": { "type": "gauge", "mode": "gradient" } },
+              { "id": "color", "value": { "mode": "continuous-GrYlRd" } }
+            ]
+          }
+        ]
+      }
     },
     {
       "id": 9,
       "title": "Web Honeypot — Top Requested Paths",
-      "type": "barchart",
+      "type": "table",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 22 },
       "datasource": { "type": "loki", "uid": "Loki" },
       "targets": [
         {
-          "expr": "topk(10, sum by (url) (count_over_time({job=\"isc-agent\"} | json | sip != \"$exclude_ip\" [$__range])))",
+          "expr": "topk(10, sum by (url) (count_over_time({job=\"isc-agent\"} | json | sip != \"$exclude_ip\" | url != \"/\" | url != \"/favicon.ico\" [$__range])))",
           "legendFormat": "{{url}}",
-          "refId": "A"
+          "refId": "A",
+          "instant": true,
+          "range": false
         }
       ],
-      "options": { "orientation": "horizontal", "showValue": "always" }
+      "transformations": [
+        { "id": "labelsToFields", "options": {} },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": { "Time": true },
+            "renameByName": { "url": "Path", "Value": "Requests" }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Requests" },
+            "properties": [
+              { "id": "custom.cellOptions", "value": { "type": "gauge", "mode": "gradient" } },
+              { "id": "color", "value": { "mode": "continuous-GrYlRd" } }
+            ]
+          }
+        ]
+      }
     },
     {
       "id": 5,
