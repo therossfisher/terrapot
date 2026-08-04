@@ -91,8 +91,13 @@
         {
           "expr": "sum by (country_code) (count_over_time({service=\"terrapot-threat-intel\"} | json | src_ip != \"$exclude_ip\" [$__range]))",
           "legendFormat": "{{country_code}}",
-          "refId": "A"
+          "refId": "A",
+          "instant": true,
+          "range": false
         }
+      ],
+      "transformations": [
+        { "id": "labelsToFields", "options": {} }
       ],
       "options": {
         "basemap": { "type": "default" },
@@ -123,10 +128,7 @@
           "refId": "A"
         }
       ],
-      "options": {
-        "orientation": "horizontal",
-        "showValue": "always"
-      }
+      "options": { "orientation": "horizontal", "showValue": "always" }
     },
     {
       "id": 15,
@@ -141,10 +143,7 @@
           "refId": "A"
         }
       ],
-      "options": {
-        "orientation": "horizontal",
-        "showValue": "always"
-      }
+      "options": { "orientation": "horizontal", "showValue": "always" }
     },
     {
       "id": 8,
@@ -159,10 +158,7 @@
           "refId": "A"
         }
       ],
-      "options": {
-        "orientation": "horizontal",
-        "showValue": "always"
-      }
+      "options": { "orientation": "horizontal", "showValue": "always" }
     },
     {
       "id": 9,
@@ -177,10 +173,7 @@
           "refId": "A"
         }
       ],
-      "options": {
-        "orientation": "horizontal",
-        "showValue": "always"
-      }
+      "options": { "orientation": "horizontal", "showValue": "always" }
     },
     {
       "id": 5,
@@ -221,21 +214,13 @@
         }
       ],
       "transformations": [
-        {
-          "id": "extractFields",
-          "options": { "source": "Line", "format": "json" }
-        },
+        { "id": "extractFields", "options": { "source": "Line", "format": "json" } },
         {
           "id": "organize",
           "options": {
             "excludeByName": {
-              "Line": true,
-              "tsNs": true,
-              "id": true,
-              "labels": true,
-              "labelTypes": true,
-              "Time": true,
-              "total_reports": true
+              "Line": true, "tsNs": true, "id": true, "labels": true,
+              "labelTypes": true, "Time": true, "total_reports": true
             },
             "indexByName": {},
             "renameByName": {}
@@ -256,21 +241,13 @@
         }
       ],
       "transformations": [
-        {
-          "id": "extractFields",
-          "options": { "source": "Line", "format": "json" }
-        },
+        { "id": "extractFields", "options": { "source": "Line", "format": "json" } },
         {
           "id": "organize",
           "options": {
             "excludeByName": {
-              "Line": true,
-              "tsNs": true,
-              "id": true,
-              "labels": true,
-              "labelTypes": true,
-              "Time": true,
-              "total_reports": true
+              "Line": true, "tsNs": true, "id": true, "labels": true,
+              "labelTypes": true, "Time": true, "total_reports": true
             },
             "indexByName": {},
             "renameByName": {}
