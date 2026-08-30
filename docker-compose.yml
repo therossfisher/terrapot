@@ -2,6 +2,7 @@ services:
   cowrie:
     image: cowrie/cowrie:latest
     restart: always
+    mem_limit: 128m
     ports: 
       - "22:2222"
     environment: 
@@ -17,6 +18,7 @@ services:
   isc-agent:
     build: .
     restart: always
+    mem_limit: 80m
     ports:
       - "80:8000"
     environment:
@@ -28,6 +30,7 @@ services:
   grafana:
     image: grafana/grafana:latest
     restart: always
+    mem_limit: 224m
     ports:
       - "3000:3000"
     environment:
@@ -40,6 +43,7 @@ services:
   loki:
     image: grafana/loki:latest
     restart: always
+    mem_limit: 192m
     volumes:
       - ./loki-config.yml:/etc/loki/local-config.yaml
       - loki-data:/loki
@@ -48,6 +52,7 @@ services:
   promtail:
     image: grafana/promtail:latest
     restart: always
+    mem_limit: 64m
     volumes:
       - ./promtail-config.yml:/etc/promtail/config.yml
       - ./logs/cowrie:/var/log/cowrie:ro
@@ -60,6 +65,7 @@ services:
   grafana-proxy:
     image: nginx:latest
     restart: always
+    mem_limit: 32m
     ports:
       - "443:443"
     volumes:
