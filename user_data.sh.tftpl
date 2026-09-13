@@ -166,6 +166,31 @@ else
   echo "SWAP: WARNING - setup failed, continuing without swap protection"
 fi
 
+
+## Daily disk cleanup — prevents the root volume from silently filling over
+## weeks of continuous uptime (a full disk once wedged Loki's ingester into a
+## permanently broken state that even a restart couldn't clear). Runs as root
+## since docker prune commands require it.
+cat > /usr/local/bin/terrapot-disk-cleanup.sh <<'CLEANUPEOF'
+#!/bin/bash
+LOGFILE=/var/log/terrapot-disk-cleanup.log
+echo "--- cleanup run: $(date) ---" >> "$LOGFILE"
+df -h / >> "$LOGFILE"
+
+docker container prune -f >> "$LOGFILE" 2>&1
+docker image prune -f >> "$LOGFILE" 2>&1
+docker builder prune -f >> "$LOGFILE" 2>&1
+journalctl --vacuum-time=3d >> "$LOGFILE" 2>&1
+apt-get clean >> "$LOGFILE" 2>&1
+
+echo "--- after cleanup ---" >> "$LOGFILE"
+df -h / >> "$LOGFILE"
+echo "" >> "$LOGFILE"
+CLEANUPEOF
+
+chmod +x /usr/local/bin/terrapot-disk-cleanup.sh
+
+(crontab -l 2>/dev/null || true; echo "0 4 * * * /usr/local/bin/terrapot-disk-cleanup.sh") | crontab -
 ## Request Let's Encrypt certificate for Grafana via DNS-01 (Route53) challenge —
 ## only runs if grafana_domain was set; otherwise Grafana stays on plain HTTP:3000
 if [ -n "${grafana_domain}" ]; then

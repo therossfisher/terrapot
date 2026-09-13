@@ -133,7 +133,8 @@ resource "aws_instance" "terrapot" {
   }
 
   root_block_device {
-    encrypted = true # encrypts EBS root volume at rest using default AWS-managed KMS key
+    volume_size = 10
+    encrypted   = true # encrypts EBS root volume at rest using default AWS-managed KMS key
   }
 
   # checkov:skip=CKV_AWS_46:All values passed to user_data are variable references (var.*), not literal secrets; actual credentials are supplied at apply-time via terraform.tfvars, never committed
